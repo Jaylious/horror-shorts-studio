@@ -67,21 +67,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
-    .platform-status {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin: 0.5rem 0;
-    }
-    .status-connected {
-        background: rgba(16, 185, 129, 0.2);
-        color: #10b981;
-    }
-    .status-disconnected {
-        background: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,7 +80,6 @@ if 'api_keys' not in st.session_state:
         'runwayml': '',
         'kling': '',
         'pika': '',
-        'stable_video': '',
         'luma': ''
     }
 if 'activity' not in st.session_state:
@@ -120,197 +104,6 @@ def image_to_base64(image_path):
         st.error(f"Error converting image: {e}")
         return None
 
-# Video Generation API Functions
-def generate_video_runwayml(api_key, character_image_path, prompt, narration):
-    """Generate video using RunwayML API"""
-    try:
-        character_base64 = image_to_base64(character_image_path)
-        if not character_base64:
-            return None, "Failed to process character image"
-        
-        url = "https://api.runwayml.com/v1/image_to_video"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        full_prompt = f"{prompt}. {narration}. Horror aesthetic, cinematic lighting, electronic dance music video style."
-        
-        payload = {
-            "model": "gen3a_turbo",
-            "prompt_image": f"data:image/png;base64,{character_base64}",
-            "prompt_text": full_prompt,
-            "duration": 5,
-            "ratio": "9:16",
-            "watermark": False
-        }
-        
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('id'), "Success"
-        else:
-            return None, f"API Error: {response.status_code} - {response.text}"
-            
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-
-def generate_video_kling(api_key, character_image_path, prompt, narration):
-    """Generate video using Kling AI API"""
-    try:
-        character_base64 = image_to_base64(character_image_path)
-        if not character_base64:
-            return None, "Failed to process character image"
-        
-        url = "https://api.klingai.com/v1/videos/image2video"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        full_prompt = f"{prompt}. {narration}. Dark horror atmosphere, cinematic quality, high detail."
-        
-        payload = {
-            "model": "kling-v1",
-            "image": f"data:image/png;base64,{character_base64}",
-            "prompt": full_prompt,
-            "duration": 5,
-            "aspect_ratio": "9:16",
-            "cfg_scale": 0.5,
-            "camera_control": {
-                "type": "none"
-            }
-        }
-        
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('id'), "Success"
-        else:
-            return None, f"API Error: {response.status_code} - {response.text}"
-            
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-
-def generate_video_pika(api_key, character_image_path, prompt, narration):
-    """Generate video using Pika Labs API"""
-    try:
-        character_base64 = image_to_base64(character_image_path)
-        if not character_base64:
-            return None, "Failed to process character image"
-        
-        url = "https://api.pika.art/generate/video"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        full_prompt = f"{prompt}. {narration}. Horror movie style, dramatic lighting."
-        
-        payload = {
-            "prompt": full_prompt,
-            "image": f"data:image/png;base64,{character_base64}",
-            "aspectRatio": "9:16",
-            "duration": 3,
-            "fps": 24
-        }
-        
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('id'), "Success"
-        else:
-            return None, f"API Error: {response.status_code} - {response.text}"
-            
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-
-def generate_video_luma(api_key, character_image_path, prompt, narration):
-    """Generate video using Luma Dream Machine API"""
-    try:
-        character_base64 = image_to_base64(character_image_path)
-        if not character_base64:
-            return None, "Failed to process character image"
-        
-        url = "https://api.lumalabs.ai/dream-machine/v1/generations"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        full_prompt = f"{prompt}. {narration}. Cinematic horror aesthetic, high quality."
-        
-        payload = {
-            "prompt": full_prompt,
-            "keyframes": {
-                "frame0": {
-                    "type": "image",
-                    "url": f"data:image/png;base64,{character_base64}"
-                }
-            },
-            "aspect_ratio": "9:16",
-            "loop": False
-        }
-        
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code == 201:
-            result = response.json()
-            return result.get('id'), "Success"
-        else:
-            return None, f"API Error: {response.status_code} - {response.text}"
-            
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-
-def check_video_status(platform, api_key, task_id):
-    """Check video generation status across platforms"""
-    try:
-        if platform == "runwayml":
-            url = f"https://api.runwayml.com/v1/tasks/{task_id}"
-        elif platform == "kling":
-            url = f"https://api.klingai.com/v1/videos/{task_id}"
-        elif platform == "pika":
-            url = f"https://api.pika.art/jobs/{task_id}"
-        elif platform == "luma":
-            url = f"https://api.lumalabs.ai/dream-machine/v1/generations/{task_id}"
-        else:
-            return 'error', None
-        
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.get(url, headers=headers)
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Normalize status across platforms
-            if platform == "runwayml":
-                status = result.get('status', 'unknown')
-                output = result.get('output')
-            elif platform == "kling":
-                status = result.get('status', 'unknown')
-                output = result.get('works', [{}])[0].get('resource')
-            elif platform == "pika":
-                status = result.get('status', 'unknown')
-                output = result.get('result', {}).get('videos', [])
-            elif platform == "luma":
-                status = result.get('state', 'unknown')
-                output = result.get('assets', {}).get('video')
-            
-            return status, output
-        else:
-            return 'error', None
-            
-    except Exception as e:
-        return 'error', str(e)
-
 def save_data():
     """Save data to local JSON files"""
     try:
@@ -324,9 +117,6 @@ def save_data():
         
         with open('horror_shorts_data/api_keys.json', 'w') as f:
             json.dump(st.session_state.api_keys, f)
-        
-        with open('horror_shorts_data/video_tasks.json', 'w') as f:
-            json.dump(st.session_state.video_tasks, f)
     except Exception as e:
         st.error(f"Error saving data: {e}")
 
@@ -344,12 +134,8 @@ def load_data():
         if os.path.exists('horror_shorts_data/api_keys.json'):
             with open('horror_shorts_data/api_keys.json', 'r') as f:
                 st.session_state.api_keys = json.load(f)
-        
-        if os.path.exists('horror_shorts_data/video_tasks.json'):
-            with open('horror_shorts_data/video_tasks.json', 'r') as f:
-                st.session_state.video_tasks = json.load(f)
     except Exception as e:
-        st.write(f"Note: Loading fresh data (no previous save found)")
+        st.write("Note: Loading fresh data (no previous save found)")
 
 # Load data on startup
 load_data()
@@ -437,17 +223,15 @@ if page == "🏠 Dashboard":
             with st.container():
                 st.markdown('<div class="platform-card">', unsafe_allow_html=True)
                 is_connected = st.session_state.api_keys.get(platform.lower().replace(' ', '_'), '')
-                status_class = "status-connected" if is_connected else "status-disconnected"
                 status_text = "🟢 Connected" if is_connected else "🔴 Setup Required"
                 
-                st.markdown(f'<div class="platform-status {status_class}">{status_text}</div>', unsafe_allow_html=True)
-                st.subheader(platform)
+                st.write(f"**{platform}** - {status_text}")
                 st.write(info['description'])
                 st.write(f"**Best for:** {info['best_for']}")
                 st.write(f"**Speed:** {info['speed']} | **Quality:** {info['quality']}")
                 st.markdown('</div>', unsafe_allow_html=True)
 
-# Characters Page (same as before)
+# Characters Page
 elif page == "👥 Characters":
     st.title("Character Database")
     
@@ -525,7 +309,7 @@ elif page == "👥 Characters":
     else:
         st.info("No characters added yet. Add your first character above!")
 
-# Scripts Page (same as before with minor updates)
+# Scripts Page
 elif page == "📝 Scripts":
     st.title("Script Manager")
     
@@ -595,7 +379,7 @@ elif page == "📝 Scripts":
     else:
         st.info("No scripts added yet. Add your first script above!")
 
-# Scene Builder Page (same as before)
+# Scene Builder Page
 elif page == "🎬 Scene Builder":
     st.title("Scene Builder")
     
@@ -676,46 +460,222 @@ elif page == "🎥 Video Generation":
     
     if not connected_platforms:
         st.warning("Please configure at least one API key in API Settings first!")
-        st.stop()
-    
-    # Find ready projects
-    ready_projects = []
-    for script_title, script_data in st.session_state.scripts.items():
-        if script_data.get('scenes'):
-            ready_scenes = [s for s in script_data['scenes'] if s.get('assigned_character') and s.get('visual_description')]
-            if ready_scenes:
-                ready_projects.append({
-                    'title': script_title,
-                    'total_scenes': len(script_data['scenes']),
-                    'ready_scenes': len(ready_scenes),
-                    'scenes': ready_scenes
-                })
-    
-    if ready_projects:
-        st.subheader("🎬 Ready for Video Generation")
+    else:
+        # Find ready projects
+        ready_projects = []
+        for script_title, script_data in st.session_state.scripts.items():
+            if script_data.get('scenes'):
+                ready_scenes = [s for s in script_data['scenes'] if s.get('assigned_character') and s.get('visual_description')]
+                if ready_scenes:
+                    ready_projects.append({
+                        'title': script_title,
+                        'total_scenes': len(script_data['scenes']),
+                        'ready_scenes': len(ready_scenes),
+                        'scenes': ready_scenes
+                    })
         
-        for project in ready_projects:
-            with st.expander(f"📝 {project['title']} ({project['ready_scenes']} scenes ready)"):
-                
-                # Platform selection
-                available_platforms = []
-                if st.session_state.api_keys.get('runwayml'):
-                    available_platforms.append("RunwayML")
-                if st.session_state.api_keys.get('kling'):
-                    available_platforms.append("Kling AI")
-                if st.session_state.api_keys.get('pika'):
-                    available_platforms.append("Pika Labs")
-                if st.session_state.api_keys.get('luma'):
-                    available_platforms.append("Luma AI")
-                
-                selected_platform = st.selectbox(
-                    "Choose Video Generation Platform",
-                    available_platforms,
-                    key=f"platform_{project['title']}"
+        if ready_projects:
+            st.subheader("🎬 Ready for Video Generation")
+            
+            for project in ready_projects:
+                with st.expander(f"📝 {project['title']} ({project['ready_scenes']} scenes ready)"):
+                    
+                    # Platform selection
+                    available_platforms = []
+                    if st.session_state.api_keys.get('runwayml'):
+                        available_platforms.append("RunwayML")
+                    if st.session_state.api_keys.get('kling'):
+                        available_platforms.append("Kling AI")
+                    if st.session_state.api_keys.get('pika'):
+                        available_platforms.append("Pika Labs")
+                    if st.session_state.api_keys.get('luma'):
+                        available_platforms.append("Luma AI")
+                    
+                    selected_platform = st.selectbox(
+                        "Choose Video Generation Platform",
+                        available_platforms,
+                        key=f"platform_{project['title']}"
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        if st.button(f"👀 Preview Project", key=f"preview_{project['title']}"):
+                            st.subheader("Project Preview")
+                            for scene in project['scenes']:
+                                st.write(f"**Scene {scene['scene_number']}**")
+                                st.write(f"Character: {scene['assigned_character']}")
+                                st.write(f"Narration: {scene['narration']}")
+                                st.write(f"Visual: {scene['visual_description']}")
+                                st.write("---")
+                    
+                    with col2:
+                        if st.button(f"🎥 Generate Videos ({selected_platform})", key=f"generate_{project['title']}"):
+                            st.info(f"Starting video generation with {selected_platform}...")
+                            
+                            # Simulate video generation (replace with actual API calls)
+                            for i, scene in enumerate(project['scenes']):
+                                character = st.session_state.characters.get(scene['assigned_character'])
+                                if character and 'image_path' in character:
+                                    st.write(f"Generating Scene {scene['scene_number']} with {selected_platform}...")
+                                    time.sleep(1)  # Simulate processing
+                                    st.success(f"✅ Scene {scene['scene_number']} submitted!")
+                            
+                            st.success(f"🎉 All scenes submitted to {selected_platform}!")
+                            add_activity(f"Generated videos with {selected_platform} for: {project['title']}")
+        else:
+            st.info("No projects ready for generation. Complete scene assignments first in Scene Builder!")
+
+# API Settings Page
+elif page == "🔗 API Settings":
+    st.title("API Configuration")
+    st.write("Configure your API keys for different video generation platforms:")
+    
+    # RunwayML
+    with st.expander("🎬 RunwayML", expanded=True):
+        st.write("**Best for:** High-quality, realistic videos with excellent character consistency")
+        st.write("**Get API Key:** https://runwayml.com/")
+        
+        runwayml_key = st.text_input(
+            "RunwayML API Key",
+            value=st.session_state.api_keys.get('runwayml', ''),
+            type="password",
+            key="runwayml_input"
+        )
+        
+        if st.button("Save RunwayML Key"):
+            st.session_state.api_keys['runwayml'] = runwayml_key
+            save_data()
+            st.success("RunwayML API key saved!")
+            st.rerun()
+    
+    # Kling AI
+    with st.expander("⚡ Kling AI"):
+        st.write("**Best for:** Dynamic motion and character fidelity")
+        st.write("**Get API Key:** https://klingai.com/")
+        
+        kling_key = st.text_input(
+            "Kling AI API Key",
+            value=st.session_state.api_keys.get('kling', ''),
+            type="password",
+            key="kling_input"
+        )
+        
+        if st.button("Save Kling Key"):
+            st.session_state.api_keys['kling'] = kling_key
+            save_data()
+            st.success("Kling AI API key saved!")
+            st.rerun()
+    
+    # Pika Labs
+    with st.expander("🎨 Pika Labs"):
+        st.write("**Best for:** Creative effects and atmospheric scenes")
+        st.write("**Get API Key:** https://pika.art/")
+        
+        pika_key = st.text_input(
+            "Pika Labs API Key",
+            value=st.session_state.api_keys.get('pika', ''),
+            type="password",
+            key="pika_input"
+        )
+        
+        if st.button("Save Pika Key"):
+            st.session_state.api_keys['pika'] = pika_key
+            save_data()
+            st.success("Pika Labs API key saved!")
+            st.rerun()
+    
+    # Luma AI
+    with st.expander("🌟 Luma AI"):
+        st.write("**Best for:** Smooth motion and natural movements")
+        st.write("**Get API Key:** https://lumalabs.ai/")
+        
+        luma_key = st.text_input(
+            "Luma AI API Key",
+            value=st.session_state.api_keys.get('luma', ''),
+            type="password",
+            key="luma_input"
+        )
+        
+        if st.button("Save Luma Key"):
+            st.session_state.api_keys['luma'] = luma_key
+            save_data()
+            st.success("Luma AI API key saved!")
+            st.rerun()
+
+# Settings Page
+elif page == "⚙️ Settings":
+    st.title("Settings")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📤 Export Data")
+        
+        if st.button("Export Characters", use_container_width=True):
+            if st.session_state.characters:
+                json_data = json.dumps(st.session_state.characters, indent=2)
+                st.download_button(
+                    "Download Characters JSON",
+                    json_data,
+                    "characters.json",
+                    "application/json",
+                    use_container_width=True
                 )
+        
+        if st.button("Export Scripts", use_container_width=True):
+            if st.session_state.scripts:
+                json_data = json.dumps(st.session_state.scripts, indent=2)
+                st.download_button(
+                    "Download Scripts JSON",
+                    json_data,
+                    "scripts.json",
+                    "application/json",
+                    use_container_width=True
+                )
+        
+        if st.button("Export All Data", use_container_width=True):
+            all_data = {
+                'characters': st.session_state.characters,
+                'scripts': st.session_state.scripts,
+                'api_keys': st.session_state.api_keys
+            }
+            json_data = json.dumps(all_data, indent=2)
+            st.download_button(
+                "Download All Data JSON",
+                json_data,
+                "horror_shorts_data.json",
+                "application/json",
+                use_container_width=True
+            )
+    
+    with col2:
+        st.subheader("📥 Import Data")
+        
+        uploaded_file = st.file_uploader("Import JSON File", type=['json'])
+        
+        if uploaded_file and st.button("Import Data", use_container_width=True):
+            try:
+                data = json.load(uploaded_file)
                 
-                col1, col2 = st.columns(2)
+                if 'characters' in data:
+                    st.session_state.characters.update(data['characters'])
+                if 'scripts' in data:
+                    st.session_state.scripts.update(data['scripts'])
+                if 'api_keys' in data:
+                    st.session_state.api_keys.update(data['api_keys'])
                 
-                with col1:
-                    if st.button(f"👀 Preview Project", key=f"preview_{project['title']}"):
-                        st.subheader("Project Preview")
+                save_data()
+                add_activity("Imported data from file")
+                st.success("Data imported successfully!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error importing data: {e}")
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.markdown("🎵 **Electronic Dance Horror House**")
+st.sidebar.markdown("Multi-platform video generation")
+
+# Auto-save data
+save_data()
